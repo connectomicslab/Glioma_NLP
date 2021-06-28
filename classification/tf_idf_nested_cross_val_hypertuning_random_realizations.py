@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier
 from datetime import datetime
-from utils_nlp import print_running_time, load_data_and_merge, write_to_csv, plot_roc_curve, plot_pr_curve,\
+from classification.utils_nlp import print_running_time, load_data_and_merge, write_to_csv, plot_roc_curve, plot_pr_curve,\
     classification_metrics, preprocess_and_extract_labels, adjust_cv_splits_for_multiple_sessions,\
     find_best_hyperparams_tf_idf, tf_idf_embedding, most_frequent, save_pickle_list_to_disk
 

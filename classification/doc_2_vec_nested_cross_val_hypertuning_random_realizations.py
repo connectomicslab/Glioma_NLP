@@ -6,7 +6,7 @@ from gensim.models.doc2vec import TaggedDocument
 from sklearn.model_selection import StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier
 from datetime import datetime
-from utils_nlp import print_running_time, load_data_and_merge, write_to_csv, plot_roc_curve, plot_pr_curve,\
+from classification.utils_nlp import print_running_time, load_data_and_merge, write_to_csv, plot_roc_curve, plot_pr_curve,\
     classification_metrics, create_and_train_doc2vec, preprocess_and_extract_labels, vec_for_learning,\
     adjust_cv_splits_for_multiple_sessions, find_best_hyperparams_d2v, most_frequent, save_pickle_list_to_disk
 
