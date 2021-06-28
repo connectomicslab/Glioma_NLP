@@ -6,7 +6,7 @@ from gensim.models.doc2vec import TaggedDocument
 from sklearn.model_selection import StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier
 from datetime import datetime
-from utils import print_running_time, load_data_and_merge, write_to_csv, plot_roc_curve, plot_pr_curve,\
+from utils_nlp import print_running_time, load_data_and_merge, write_to_csv, plot_roc_curve, plot_pr_curve,\
     classification_metrics, create_and_train_doc2vec, preprocess_and_extract_labels, vec_for_learning,\
     adjust_cv_splits_for_multiple_sessions, find_best_hyperparams_d2v, most_frequent, save_pickle_list_to_disk
 
@@ -316,13 +316,10 @@ def doc2vec_classification_random_realizations(df_reports, df_comparative_dates_
 
 
 def main():
-    # INPUT ARGUMENTS
-    annotated_reports_chunk_1_path = "/home/newuser/Desktop/Medical_Reports/Glioma_Dataset_Chirine_70_reports_May_01_2020.json"
-    annotated_reports_chunk_2_path = "/home/newuser/Desktop/Medical_Reports/Glioma_Dataset_Chirine_135_reports_May_01_2020.json"
-    annotated_reports_chunk_3_path = "/home/newuser/Desktop/Medical_Reports/Glioma_Dataset_Chirine_156_reports_March_17_2021.json"
-    df_reports = load_data_and_merge(annotated_reports_chunk_1_path, annotated_reports_chunk_2_path, annotated_reports_chunk_3_path)
-    df_comparative_dates_and_reports_path = "/home/newuser/Desktop/Medical_Reports/df_comparative_dates_and_reports_Apr_23_2021.csv"
-    df_comparative_dates_and_reports = pd.read_csv(df_comparative_dates_and_reports_path)  # type: pd.DataFrame
+    # INPUT ARGUMENTS THAT MUST BE SET BY THE USER
+    output_folder = "/path/to/out/.../folder/"  # type: str # path where we save output files
+    df_comparative_dates_and_reports_path = "/path/to/csvfile/with/comparative/dates/df_comparative_dates_and_reports.csv" # type: str
+    annotated_reports_chunk_1_path = "/path/to/annotation/jsonfile/created/with/dataturks/annotations.json" # type: str
 
     # TUNABLE ARGS
     doc2vec_types = [1, 0]  # type: list # it corresponds to the two versions of doc2vec (1 --> PV-DM, 0 --> PV-DBOW)
@@ -330,10 +327,8 @@ def main():
     max_features_random_forest = [0.8, 1.0]  # type: list # it corresponds to the percentage of features retained by the random forest classifier
 
     # FIXED ARGS
-    output_folder = "/home/newuser/Desktop/Medical_Reports/saved_files/"  # path where we save embeddings for visualization
     random_realizations = 10  # number of random realizations; at each iteration we change the seed of the CV split
     cv_folds = 5  # number of cross-validation folds
-
     remove_proper_nouns = True
     remove_custom_words = True
     lowercase = True
@@ -341,7 +336,11 @@ def main():
     from_indication_onward = True
     from_description_onward = False
     binary_classification = True
-
+    
+    # load reports and dataframe with info about the sessions
+    df_reports = load_data_and_merge(annotated_reports_chunk_1_path, annotated_reports_chunk_2_path, annotated_reports_chunk_3_path)
+    df_comparative_dates_and_reports = pd.read_csv(df_comparative_dates_and_reports_path)  # type: pd.DataFrame
+    
     doc2vec_classification_random_realizations(df_reports,
                                                df_comparative_dates_and_reports,
                                                doc2vec_types,
