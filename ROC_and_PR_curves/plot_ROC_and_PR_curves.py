@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-from utils import load_list_from_disk
+from classification.utils_nlp import load_list_from_disk
 
 
 def find_average_no_skill(load_dir, nb_random_realizations, embedding, date):
