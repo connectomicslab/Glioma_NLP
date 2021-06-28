@@ -332,7 +332,6 @@ def main():
     # FIXED ARGS
     random_realizations = 10  # number of random realizations; at each iteration we change the seed of the CV split
     cv_folds = 5  # number of cross-validation folds
-
     remove_proper_nouns = True
     remove_custom_words = True
     lowercase = True
