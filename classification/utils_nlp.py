@@ -17,6 +17,8 @@ from sklearn.utils import shuffle
 from sklearn.feature_extraction.text import TfidfVectorizer
 import multiprocessing
 from gensim.models import Doc2Vec
+from sklearn.pipeline import make_pipeline
+from lime.lime_text import LimeTextExplainer
 from typing import List, Any
 
 
@@ -742,3 +744,105 @@ def vec_for_learning(model, tagged_docs):
     targets_np = np.asarray(targets_list)
     regressors_np = np.asarray(regressors_list)
     return regressors_np, targets_np, doc_2_embedding_mapping
+
+
+def plot_conf_matrix_and_results(conf_mat, acc, rec, spec, prec, npv, f1, plot=True):
+    """This function plots the confusion matrix and the classification results
+    Args:
+        conf_mat (np.ndarray): confusion matrix
+        acc (float): accuracy
+        rec (float): recall (i.e. sensitivity, or true positive rate)
+        spec (float): specificity (i.e. true negative rate)
+        prec (float): precision (i.e. positive predictive value)
+        npv (float): negative predictive value
+        f1 (float): F1-score (i.e. harmonic mean of precision and recall)
+        plot (bool): whether to plot the confusion matrix; defaults to True
+    """
+    df_conf_matrix = pd.DataFrame(conf_mat)  # type: pd.DataFrame
+    if df_conf_matrix.shape == (2, 2):
+        df_conf_matrix.columns = ["stable", "unstable"]
+        df_conf_matrix.index = ["stable", "unstable"]
+    elif df_conf_matrix.shape == (4, 4):
+        df_conf_matrix.columns = ["stable", "response", "progression", "unknown"]
+        df_conf_matrix.index = ["stable", "response", "progression", "unknown"]
+    else:
+        raise ValueError("Check number of labels")
+
+    print("\nTest set results over {} documents: ".format(int(np.sum(conf_mat))))
+    print("Accuracy = {:.2f}".format(acc))
+    print("Sensitivity (recall) = {:.2f}".format(rec))
+    print("Specificity = {:.2f}".format(spec))
+    print("Precision (PPV) = {:.2f}".format(prec))
+    print("NPV = {:.2f}".format(npv))
+    print("f1-score = {:.2f}".format(f1))
+
+    # plot CONFUSION MATRIX
+    if plot:
+        fig, ax = plt.subplots()
+        sns.set(font_scale=1.4)  # for label size
+        sns.heatmap(df_conf_matrix, annot=True, annot_kws={"size": 16}, fmt='d')  # font size
+        ax.set_title("Conf. Matrix ({} samples)".format(int(np.sum(conf_mat))), weight="bold", fontsize=15)
+        ax.set_ylabel("True", fontsize=12)
+        ax.set_xlabel("Predicted", fontsize=12)
+        plt.show()
+
+
+def extract_lime_explanation_tf_idf(idx_doc_to_investigate, vectorizer, random_forest, x_test, y_test, out_dir, cnt_document, prediction, embedding, save=True):
+    """This function computes the LIME explanation for one report
+    Args:
+        idx_doc_to_investigate (int): index of report to explain
+        vectorizer (sklearn.feature_extraction.text.TfidfVectorizer): trained TF-IDF vectorizer
+        random_forest (sklearn.ensemble.RandomForestClassifier): trained random forest classifier
+        x_test (list): it contains the free-text reports of the test set
+        y_test (list): it contains the labels of the test set
+        out_dir (str): folder where we want to save the explanation .html files
+        cnt_document (int): dummy counter used to name each document differently
+        prediction (str): type of example being explained (e.g. TN, TP, FP, FN)
+        embedding (str): embedding used to compute the explanation
+        save (bool): if True, the .html explanations are saved to disk
+    Returns:
+        explanation_list (list): it contains the most frequent words associated with the explanation
+    """
+    class_names = ["stable", "unstable"]
+    explainer = LimeTextExplainer(class_names=class_names)
+    if embedding == "tf_idf":
+        c = make_pipeline(vectorizer, random_forest)
+        exp = explainer.explain_instance(x_test[idx_doc_to_investigate], c.predict_proba, num_features=6)
+    else:
+        raise ValueError('Only "tf_idf" allowed as embedding; got {} instead'.format(embedding))
+
+    # print("Preprocessed report:\n{}".format(x_test[idx_doc_to_investigate]))
+    # print('\nProbability (unstable) =', c.predict_proba([x_test[idx_doc_to_investigate]])[0, 1])
+    # print("\nTrue class: {}".format(class_names[y_test[idx_doc_to_investigate]]))
+    explanation_list = exp.as_list()
+    # exp.as_pyplot_figure()
+    if save:
+        out_dir = os.path.join(out_dir, "LIME", prediction, embedding)
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+        out_filepath = os.path.join(out_dir, "{}_lime_explanation_{}_{}.html".format(cnt_document, prediction, embedding))
+        exp.save_to_file(out_filepath)
+
+    return explanation_list
+
+
+def print_most_common_features(explanation_list, predictions, nb_most_common_features=6):
+    """This function prints the most common features chosen by LIME for the two classes (stable vs. unstable)
+    Args:
+        explanation_list (list): it contains the most common features for a certain category of samples (e.g. TPs)
+        predictions (str): samples being explained (e.g. FPs)
+        nb_most_common_features (int): number of most common features to print per category of samples
+    """
+    explanation_list_flat = [item for sublist in explanation_list for item in sublist]  # flatten list
+    all_explanations_np = np.asarray(explanation_list_flat)
+    numerical_values = all_explanations_np[:, 1].astype(np.float32)
+    positive_values = np.argwhere(numerical_values > 0)  # the features indicating instability have positive values
+    negative_values = np.argwhere(numerical_values < 0)  # the features indicating stability have negative values
+    all_explanations_np_unstable = all_explanations_np[positive_values, 0].flatten()
+    all_explanations_np_stable = all_explanations_np[negative_values, 0].flatten()
+    most_common_unstable_features = Counter(all_explanations_np_unstable).most_common(nb_most_common_features)
+    most_common_stable_features = Counter(all_explanations_np_stable).most_common(nb_most_common_features)
+
+    print("\nMost common features for {} reports:".format(predictions))
+    print("Unstable: {}".format(most_common_unstable_features))
+    print("Stable: {}".format(most_common_stable_features))
