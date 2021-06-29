@@ -12,7 +12,7 @@ from classification.utils_nlp import print_running_time, load_data_and_merge, wr
 
 
 def doc2vec_classification_random_realizations(df_reports, df_comparative_dates_and_reports, doc2vec_types, vector_sizes, max_features_random_forest, cv_folds, random_realizations, output_folder,
-                                               remove_proper_nouns, remove_custom_words, lowercase, remove_punctuation, from_indication_onward, from_description_onward, binary_classification=True):
+                                               remove_proper_nouns, remove_custom_words, lowercase, remove_punctuation, remove_stopwords, from_indication_onward, from_description_onward, binary_classification=True):
     """This function executes the classification of the reports using the doc2vec model for embedding and the random forest classifier
     Args:
         df_reports (pd.Dataframe): it contains all the information in the json file created during the manual annotation processing
@@ -27,6 +27,7 @@ def doc2vec_classification_random_realizations(df_reports, df_comparative_dates_
         remove_custom_words (bool): if set to True, specific words related to the reports will be removed
         lowercase (bool): if set to True, all words of the reports will be set to lowercase
         remove_punctuation (bool): if set to True, punctuation will be removed from the reports
+        remove_stopwords (bool): if set to True, stopwords will be removed from the reports
         from_indication_onward (bool): if set to True, we will only use the words from the "Indication" section onwards; everything before will be discarded
         from_description_onward (bool): if set to True, we will only use the words from the "Description" section onwards; everything before will be discarded
         binary_classification (bool): if set to True, it means that we will perform a binary classification; defaults to True
@@ -54,6 +55,7 @@ def doc2vec_classification_random_realizations(df_reports, df_comparative_dates_
                                                                                                              remove_custom_words=remove_custom_words,
                                                                                                              lowercase=lowercase,
                                                                                                              remove_punctuation=remove_punctuation,
+                                                                                                             remove_stopwords=remove_stopwords,
                                                                                                              from_indication_onward=from_indication_onward,
                                                                                                              from_description_onward=from_description_onward,
                                                                                                              lemmatize=False,
@@ -318,8 +320,8 @@ def doc2vec_classification_random_realizations(df_reports, df_comparative_dates_
 def main():
     # INPUT ARGUMENTS THAT MUST BE SET BY THE USER
     output_folder = "/path/to/out/.../folder/"  # type: str # path where we save output files
-    df_comparative_dates_and_reports_path = "/path/to/csvfile/with/comparative/dates/df_comparative_dates_and_reports.csv" # type: str
-    annotated_reports_chunk_1_path = "/path/to/annotation/jsonfile/created/with/dataturks/annotations.json" # type: str
+    df_comparative_dates_and_reports_path = "/path/to/csvfile/with/comparative/dates/df_comparative_dates_and_reports.csv"  # type: str
+    annotated_reports_chunk_1_path = "/path/to/annotation/jsonfile/created/with/dataturks/annotations.json"  # type: str
 
     # TUNABLE ARGS
     doc2vec_types = [1, 0]  # type: list # it corresponds to the two versions of doc2vec (1 --> PV-DM, 0 --> PV-DBOW)
@@ -333,12 +335,13 @@ def main():
     remove_custom_words = True
     lowercase = True
     remove_punctuation = True
+    remove_stopwords = True
     from_indication_onward = True
     from_description_onward = False
     binary_classification = True
     
     # load reports and dataframe with info about the sessions
-    df_reports = load_data_and_merge(annotated_reports_chunk_1_path, annotated_reports_chunk_2_path, annotated_reports_chunk_3_path)
+    df_reports = load_data_and_merge(annotated_reports_chunk_1_path)
     df_comparative_dates_and_reports = pd.read_csv(df_comparative_dates_and_reports_path)  # type: pd.DataFrame
     
     doc2vec_classification_random_realizations(df_reports,
@@ -353,6 +356,7 @@ def main():
                                                remove_custom_words,
                                                lowercase,
                                                remove_punctuation,
+                                               remove_stopwords,
                                                from_indication_onward,
                                                from_description_onward,
                                                binary_classification)
