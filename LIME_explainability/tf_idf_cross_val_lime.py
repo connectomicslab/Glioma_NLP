@@ -102,7 +102,7 @@ def tf_idf_classification_lime(df_reports, df_comparative_dates_and_reports, max
                                                                   min_doc_freq=2,
                                                                   max_doc_freq=0.9)
 
-        # use trained tf-idf to embed validation data
+        # use trained tf-idf to embed test data
         x_test_embedded = tf_idf_converter.transform(x_test).toarray()
 
         # ------------- begin CLASSIFICATION for test folder-------------
